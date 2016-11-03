@@ -1,5 +1,5 @@
 defmodule CodeCorps.RoleControllerTest do
-  use CodeCorps.ApiCase
+  use CodeCorps.ApiCase, resource_name: :role
 
   alias CodeCorps.Repo
   alias CodeCorps.Role
@@ -11,44 +11,33 @@ defmodule CodeCorps.RoleControllerTest do
 
   describe "index" do
     test "lists all entries on index", %{conn: conn} do
-      path = conn |> role_path(:index)
-      json = conn |> get(path) |> json_response(200)
+      [role_1, role_2] = insert_pair(:role)
 
-      assert json["data"] == []
+      conn
+      |> request_index
+      |> json_response(200)
+      |> assert_ids_from_response([role_1.id, role_2.id])
     end
   end
 
   describe "create" do
     @tag authenticated: :admin
     test "creates and renders resource when data is valid", %{conn: conn} do
-      path = conn |> role_path(:create)
-      payload = build_payload |> put_attributes(@valid_attrs)
-      json = conn |> post(path, payload) |> json_response(201)
-
-      assert json["data"]["id"]
-      assert Repo.get_by(Role, @valid_attrs)
+      assert conn |> request_create(@valid_attrs) |> json_response(201)
     end
 
     @tag authenticated: :admin
-    test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-      path = conn |> role_path(:create)
-      payload = build_payload |> put_attributes(@invalid_attrs)
-      json = conn |> post(path, payload) |> json_response(422)
-
-      assert json["errors"] != %{}
+    test "renders 422 when data is invalid", %{conn: conn} do
+      assert conn |> request_create(@invalid_attrs) |> json_response(422)
     end
 
-    test "does not create resource and renders 401 when unauthenticated", %{conn: conn} do
-      path = conn |> role_path(:create)
-      payload = build_payload |> put_attributes(@valid_attrs)
-      assert conn |> post(path, payload) |> json_response(401)
+    test "renders 401 when unauthenticated", %{conn: conn} do
+      assert conn |> request_create |> json_response(401)
     end
 
     @tag :authenticated
-    test "does not create resource and renders 403 when not authorized", %{conn: conn} do
-      path = conn |> role_path(:create)
-      payload = build_payload |> put_attributes(@valid_attrs)
-      assert conn |> post(path, payload) |> json_response(403)
+    test "enders 403 when not authorized", %{conn: conn} do
+      assert conn |> request_create |>  json_response(403)
     end
   end
 end
