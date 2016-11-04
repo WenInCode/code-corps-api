@@ -1,13 +1,8 @@
 defmodule CodeCorps.RoleControllerTest do
   use CodeCorps.ApiCase, resource_name: :role
 
-  alias CodeCorps.Repo
-  alias CodeCorps.Role
-
   @valid_attrs %{ability: "Backend Development", kind: "technology", name: "Backend Developer"}
   @invalid_attrs %{ability: "Juggling", kind: "circus", name: "Juggler"}
-
-  defp build_payload, do: %{ "data" => %{"type" => "role"}}
 
   describe "index" do
     test "lists all entries on index", %{conn: conn} do
