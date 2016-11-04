@@ -1,5 +1,5 @@
 defmodule CodeCorps.SkillControllerTest do
-  use CodeCorps.ApiCase, resource_name: :skill
+  use CodeCorps.ApiCase
 
   alias CodeCorps.Skill
   alias CodeCorps.Repo
@@ -15,52 +15,57 @@ defmodule CodeCorps.SkillControllerTest do
 
   describe "index" do
     test "lists all entries on index", %{conn: conn} do
-      [skill_1, skill_2] = insert_pair(:skill)
+      path = conn |> skill_path(:index)
+      json = conn |> get(path) |> json_response(200)
 
-      conn
-      |> request_index
-      |> json_response(200)
-      |> assert_ids_from_response([skill_1.id, skill_2.id])
+      assert json["data"] == []
     end
 
     test "filters resources on index", %{conn: conn} do
-      [skill_1, skill_2 | _] = insert_list(3, :skill)
+      elixir = insert(:skill, title: "Elixir")
+      phoenix = insert(:skill, title: "Phoenix")
+      insert(:skill, title: "Rails")
 
-      path = "skills/?filter[id]=#{skill_1.id},#{skill_2.id}"
+      params = %{"filter" => %{"id" => "#{elixir.id},#{phoenix.id}"}}
+      path = conn |> skill_path(:index, params)
 
-      conn
-      |> get(path)
-      |> json_response(200)
-      |> assert_ids_from_response([skill_1.id, skill_2.id])
+      json = conn |> get(path) |> json_response(200)
+
+      data = json["data"]
+      assert data |> length == 2
+
+      [first_result, second_result | _] = data
+      assert first_result["id"] == "#{elixir.id}"
+      assert second_result["id"] == "#{phoenix.id}"
     end
 
-    # test "returns search results on index", %{conn: conn} do
-    #   ruby = insert(:skill, title: "Ruby")
-    #   rails = insert(:skill, title: "Rails")
-    #   insert(:skill, title: "Phoenix")
-    #
-    #   params = %{"query" => "r"}
-    #   path = conn |> skill_path(:index, params)
-    #
-    #   json = conn |> get(path) |> json_response(200)
-    #   data = json["data"]
-    #
-    #   [first_result, second_result | _] = data
-    #   assert length(data) == 2
-    #   assert first_result["id"] == "#{ruby.id}"
-    #   assert second_result["id"] == "#{rails.id}"
-    # end
+    test "returns search results on index", %{conn: conn} do
+      ruby = insert(:skill, title: "Ruby")
+      rails = insert(:skill, title: "Rails")
+      insert(:skill, title: "Phoenix")
 
-    # test "limit filter limits results on index", %{conn: conn} do
-    #   insert_list(6, :skill)
-    #
-    #   params = %{"limit" => 5}
-    #   path = conn |> skill_path(:index, params)
-    #   json = conn |> get(path) |> json_response(200)
-    #
-    #   returned_skills_length = json["data"] |> length
-    #   assert returned_skills_length == 5
-    # end
+      params = %{"query" => "r"}
+      path = conn |> skill_path(:index, params)
+
+      json = conn |> get(path) |> json_response(200)
+      data = json["data"]
+
+      [first_result, second_result | _] = data
+      assert length(data) == 2
+      assert first_result["id"] == "#{ruby.id}"
+      assert second_result["id"] == "#{rails.id}"
+    end
+
+    test "limit filter limits results on index", %{conn: conn} do
+      insert_list(6, :skill)
+
+      params = %{"limit" => 5}
+      path = conn |> skill_path(:index, params)
+      json = conn |> get(path) |> json_response(200)
+
+      returned_skills_length = json["data"] |> length
+      assert returned_skills_length == 5
+    end
   end
 
   describe "show" do
